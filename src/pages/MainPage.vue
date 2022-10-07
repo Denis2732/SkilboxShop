@@ -24,7 +24,14 @@
         />
         <section class="catalog" style="align-items: center">
           <ProductList :products="products"/>
-          <h1 class="content__title" style="text-align: center" v-if="countProducts === 0">
+          <h1 class="content__title" style="text-align: center" v-if="productsLoading">
+              Идет загрузка товаров...
+          </h1>
+          <h1 class="content__title" style="text-align: center" v-if="productsLoadingError">
+              Произошла ошибка, попробуйте еще раз, нажмите на кнопку.
+              <button class="button button--second" @click="loadProducts">Попробовать</button>
+          </h1>
+          <h1 class="content__title" style="text-align: center" v-if="countProducts === 0  && !productsLoading && !productsLoadingError">
               Разраб сказал: "Таких товаров нет!"
           </h1>
           <BasePagination v-model="page" :count="countProducts" :per-page="productsPerPage"/>
@@ -38,10 +45,10 @@
 </template>
 
 <script>
-import products from '@/data/products';
 import ProductList from '@/components/ProductList.vue';
 import BasePagination from '@/components/BasePagination.vue';
 import ProductFilter from '@/components/ProductFilter.vue';
+import axios from 'axios';
 
 export default {
   components: { ProductList, BasePagination, ProductFilter },
@@ -54,52 +61,68 @@ export default {
       filterCheck: [],
       page: 1,
       productsPerPage: 6,
+      productsData: null,
+
+      productsLoading: false,
+      productsLoadingError: false,
     };
   },
   computed: {
-    filterProducts() {
-      let filterProducts = products;
-      if (this.filterPriceFrom > 0) {
-        filterProducts = filterProducts.filter((product) => product.price > this.filterPriceFrom);
-      }
-      if (this.filterPriceTo > 0) {
-        filterProducts = filterProducts.filter((product) => product.price < this.filterPriceTo);
-      }
-      if (this.filterCategoryId > 0) {
-        filterProducts = filterProducts.filter(
-          (product) => product.categoryId === this.filterCategoryId,
-        );
-      }
-      if (this.filterCategoryId === 0) {
-        filterProducts = filterProducts.filter(
-          (product) => product.categoryIAll === this.filterCategoryId,
-        );
-      }
-      if (this.filterColor) {
-        filterProducts = filterProducts.filter(
-          (product) => product.color === this.filterColor,
-        );
-      }
-      if (this.filterCheck.length > 0) {
-        let array = [];
-        let array2 = [];
-        this.filterCheck.forEach((element) => {
-          array = filterProducts.filter(
-            (product) => product.capacitySize === element,
-          );
-          array2 = array2.concat(array);
-        });
-        filterProducts = array2;
-      }
-      return filterProducts;
-    },
     products() {
-      const offset = (this.page - 1) * this.productsPerPage;
-      return this.filterProducts.slice(offset, offset + this.productsPerPage);
+      return this.productsData
+        ? this.productsData.items.map((product) => ({
+          ...product,
+          image: product.image.file.url,
+        }))
+        : [];
     },
     countProducts() {
-      return this.filterProducts.length;
+      return this.productsData
+        ? this.productsData.pagination.total : 0;
     },
+  },
+  watch: {
+    page() {
+      this.loadProducts();
+    },
+    filterCategoryId() {
+      this.loadProducts();
+    },
+    filterPriceFrom() {
+      this.loadProducts();
+    },
+    filterPriceTo() {
+      this.loadProducts();
+    },
+    filterColor() {
+      this.loadProducts();
+    },
+  },
+  methods: {
+    loadProducts() {
+      clearTimeout(this.loadProductsTimer);
+      this.productsLoading = true;
+      this.productsLoadingError = false;
+      this.loadProductsTimer = setTimeout(() => {
+        axios
+          .get('https://vue-study.skillbox.cc/api/products', {
+            params: {
+              page: this.page,
+              limit: this.productsPerPage,
+              categoryId: this.filterCategoryId,
+              minPrice: this.filterPriceFrom,
+              maxPrice: this.filterPriceTo,
+              colorId: this.filterColor,
+            },
+          })
+          .then((response) => this.productsData = response.data)
+          .catch(() => this.productsLoadingError = true)
+          .then(() => this.productsLoading = false);
+      }, 0);
+    },
+  },
+  created() {
+    this.loadProducts();
   },
 };
 </script>

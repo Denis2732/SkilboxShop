@@ -38,8 +38,8 @@
         <li class="colors__item" v-for="(col, index) in colors" :key="index">
           <label class="colors__label">
             <input class="colors__radio sr-only" v-model="currentColor"
-            type="radio" name="color" :value="col.color">
-            <span class="colors__value" :style="'background-color:' + col.color">
+            type="radio" name="color" :value="col.id">
+            <span class="colors__value" :style="'background-color:' + col.code">
             </span>
           </label>
         </li>
@@ -47,9 +47,10 @@
     </fieldset>
 
     <fieldset class="form__block">
-      <legend class="form__legend">Объемб в ГБ</legend>
+      <legend class="form__legend">Объем в ГБ</legend>
       <ul class="check-list">
-        <li class="check-list__item" v-for="(capacity) in capacitys" :key="capacity.size + 'checkbox'">
+        <li class="check-list__item" v-for="(capacity) in capacitys"
+        :key="capacity.size + 'checkbox'">
           <label class="check-list__label" :for="capacity.size + 'checkbox'">
             <input :id="capacity.size + 'checkbox'" class="check-list__check sr-only"
             v-model="currentCheck"
@@ -74,9 +75,8 @@
 </template>
 
 <script>
-import categories from '../data/categories';
+import axios from 'axios';
 import capacitys from '../data/capacitys';
-import colors from '../data/colors';
 
 export default {
   data() {
@@ -87,18 +87,20 @@ export default {
       currentColor: '',
       currentCheck: [],
       currentPage: 1,
+      categoriesData: null,
+      colorsData: null,
     };
   },
   props: ['page', 'PriceFrom', 'PriceTo', 'CategoryId', 'Color', 'Check'],
   computed: {
     categories() {
-      return categories;
+      return this.categoriesData ? this.categoriesData.items : [];
     },
     capacitys() {
       return capacitys;
     },
     colors() {
-      return colors;
+      return this.colorsData ? this.colorsData.items : [];
     },
   },
   watch: {
@@ -138,6 +140,18 @@ export default {
       this.$emit('update:color', '');
       this.$emit('update:page', this.currentPage = 1);
     },
+    loadCategories() {
+      axios.get('https://vue-study.skillbox.cc/api/productCategories')
+        .then(response => this.categoriesData = response.data);
+    },
+    loadColors() {
+      axios.get('https://vue-study.skillbox.cc/api/colors')
+        .then(response => this.colorsData = response.data);
+    },
+  },
+  created() {
+    this.loadCategories();
+    this.loadColors();
   },
 };
 </script>

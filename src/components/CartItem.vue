@@ -1,11 +1,11 @@
 <template>
   <li class="cart__item product">
     <div class="product__pic">
-      <img :src="'img/' + item.product.image" width="120" height="120"
+      <img :src="item.product.image" width="120" height="120"
       :alt="item.product.title">
     </div>
     <h3 class="product__title">
-      {{ item.product.title }} {{ img }}
+      {{ item.product.title }} 
     </h3>
     <p class="product__info" v-if="item.product.capacitySize > 0">
       Объем: <span>{{ item.product.capacitySize }} GB</span>
@@ -16,14 +16,14 @@
 
     <div class="product__counter form__counter">
       <button type="button" aria-label="Убрать один товар">
-        <svg width="10" height="10" fill="currentColor">
+        <svg width="10" height="10" fill="currentColor" @click="minusOneProduct()">
           <use xlink:href="#icon-minus"></use>
         </svg>
       </button>
 
       <input type="text" v-model.number="amount" name="count">
 
-      <button type="button" aria-label="Добавить один товар">
+      <button type="button" aria-label="Добавить один товар" @click="amount++">
         <svg width="10" height="10" fill="currentColor">
           <use xlink:href="#icon-plus"></use>
         </svg>
@@ -44,7 +44,8 @@
 </template>
 
 <script>
-import { mapMutations } from 'vuex';
+import { mapActions } from 'vuex';
+import numFormat from '../helpers/numFormat';
 
 export default {
   props: ['item'],
@@ -54,12 +55,24 @@ export default {
         return this.item.amount;
       },
       set(value) {
-        this.$store.commit('updateCartProductAmount', { productId: this.item.productId, amount: value });
+        this.$store.dispatch('updateCartProductAmount', { productId: this.item.productId, amount: value });
       },
     },
   },
+  filters: {
+    numFormat,
+  },
   methods: {
-    ...mapMutations({ deleteToCart: 'deleteCartProduct' }),
+    ...mapActions(['deleteCartProduct']),
+    deleteToCart(item) {
+      this.deleteCartProduct(item);
+    },
+    minusOneProduct() {
+      if (this.amount > 0) {
+        // eslint-disable-next-line no-plusplus
+        this.amount--;
+      }
+    },
   },
 };
 </script>
